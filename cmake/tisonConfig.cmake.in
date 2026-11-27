@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+include(${CMAKE_CURRENT_LIST_DIR}/tisonTargets.cmake)
+
+# The package was built with the metaprogram, so offer tison_typeinfo_codegen().
+if(TARGET tison::typeinfo_metaprogram)
+    set_and_check(TISON_TYPEINFO_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@/tison")
+    # Absolute, recorded at build time: the builtin headers must match the libclang the
+    # metaprogram was linked against. This is the one path that makes the package not relocatable.
+    set(TISON_CLANG_INCLUDE_DIR "@TISON_CLANG_INCLUDE_DIR@")
+    set(TISON_METAPROGRAM tison::typeinfo_metaprogram)
+    include(${CMAKE_CURRENT_LIST_DIR}/tisonCodegen.cmake)
+endif()
+
+check_required_components(tison)

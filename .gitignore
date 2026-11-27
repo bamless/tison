@@ -1,0 +1,8 @@
+build/
+tmp/
+.cache/
+compile_commands.json
+test/test_types_typeinfo.*
+examples/*_typeinfo.*
+*.out.json
+test/package/*_typeinfo.*

@@ -1,0 +1,12 @@
+prefix=${pcfiledir}/@TISON_PC_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+bindir=${prefix}/@CMAKE_INSTALL_BINDIR@
+typeinfo_metaprogram=${bindir}/typeinfo_metaprogram
+clang_include=@TISON_CLANG_INCLUDE_DIR@
+
+Name: tison
+Description: C99 JSON serialization driven by typeinfo.c reflection
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir}/tison
+Libs: -L${libdir} -ltison -lm

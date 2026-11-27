@@ -1,0 +1,8 @@
+prefix=${pcfiledir}/@TISON_PC_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+
+Name: tison-extlib
+Description: tison adapter for extlib types (extlib.h is not installed, provide your own)
+Version: @PROJECT_VERSION@
+Requires: tison
+Libs: -L${libdir} -ltison_extlib

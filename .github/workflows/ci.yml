@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.cc }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    env: &llvm-env
+      LLVM_DIR: /usr/lib/llvm-18
+      CMAKE_PREFIX_PATH: /usr/lib/llvm-18
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 libclang-18-dev
+          echo "$LLVM_DIR/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=${{ matrix.cc }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: cmake --build build --target test
+
+      - name: Run examples
+        run: cmake --build build --target run-examples
+
+  sanitize:
+    name: asan + ubsan
+    runs-on: ubuntu-24.04
+    env: *llvm-env
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 libclang-18-dev
+          echo "$LLVM_DIR/bin" >> "$GITHUB_PATH"
+
+      # ASan's shadow memory layout breaks with the high mmap randomization some runner
+      # kernels ship with, which shows up as random "AddressSanitizer:DEADLYSIGNAL" crashes.
+      - name: Lower mmap randomization
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DTISON_BUILD_EXAMPLES=OFF
+
+      - name: Test
+        run: cmake --build build --target test-asan
+
+  install:
+    name: install + package
+    runs-on: ubuntu-24.04
+    env: *llvm-env
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 libclang-18-dev
+          echo "$LLVM_DIR/bin" >> "$GITHUB_PATH"
+          echo "PREFIX=$RUNNER_TEMP/prefix" >> "$GITHUB_ENV"
+
+      - name: Build and install
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib \
+            -DTISON_BUILD_TESTS=OFF -DTISON_BUILD_EXAMPLES=OFF
+          cmake --build build --parallel
+          cmake --install build --prefix "$PREFIX"
+
+      - name: find_package consumer
+        run: |
+          cmake -S test/package -B build-pkg -DCMAKE_PREFIX_PATH="$PREFIX"
+          cmake --build build-pkg
+          ./build-pkg/player
+
+      - name: pkg-config consumer
+        env:
+          PKG_CONFIG_PATH: ${{ runner.temp }}/prefix/lib/pkgconfig
+        run: |
+          mkdir build-pc
+          cp test/package/player.h test/package/main.c build-pc/
+          "$(pkg-config --variable=typeinfo_metaprogram tison)" -I"$PREFIX/include/tison" \
+            -I"$(pkg-config --variable=clang_include tison)" build-pc/player.h -o build-pc/player_typeinfo
+          # shellcheck disable=SC2046
+          cc -std=c99 -Wall -Wextra -Ibuild-pc build-pc/main.c build-pc/player_typeinfo.c \
+            $(pkg-config --cflags --libs tison) -o build-pc/player
+          ./build-pc/player

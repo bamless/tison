@@ -1,0 +1,21 @@
+﻿---
+BasedOnStyle: Google
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+
+ColumnLimit: 100
+IndentWidth: 4
+MaxEmptyLinesToKeep: 1
+
+AlignConsecutiveMacros: true
+PointerAlignment: Right
+SpaceBeforeParens: Never
+
+IndentPPDirectives: None
+IndentCaseLabels: false
+
+PenaltyBreakAssignment: 25
+PenaltyBreakBeforeFirstCallParameter: 50
+
+...
